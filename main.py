@@ -20,6 +20,7 @@ def split_pdf(archivo: str):
 
 
 def pdf_to_xlsx(pdf_file_name, xlsx_file_name):
+    print("Converting: ", pdf_file_name)
     tables = camelot.read_pdf(pdf_file_name, pages="all", flavor="stream")
 
     for i, table in enumerate(tables):  # type: ignore
@@ -38,7 +39,7 @@ def pdf_to_xlsx(pdf_file_name, xlsx_file_name):
             df.iloc[1, 3] = nombre_ficha
 
         ##Revisa si la fila esta vacia y solo tiene un valor en el nombre del insumo, si es asi, lo agrega al nombree dle insumo anterior y elimina la fila que no tenia nada mas que eso
-        
+
         try:
             for index in range(len(df)):
                 if (
@@ -55,7 +56,7 @@ def pdf_to_xlsx(pdf_file_name, xlsx_file_name):
         except Exception as e:
             print("Error en el archivo: ", pdf_file_name)
             print("Error: ", e)
-            
+
             print(df)
             return
 
@@ -72,26 +73,29 @@ def main():
     files = os.listdir("output/Temp")
     pdf_files = [file for file in files if file.endswith(".pdf")]
 
-    for page in pdf_files:
-        path = f"output/Temp/{page}"
-        xlsx_file_name = f"output/Fichas1_page_{page}.xlsx"
-        pdf_to_xlsx(path, xlsx_file_name)
+    print(f"Total number of PDF files: {len(pdf_files)}")
+    
+
+    for i in range(1, len(pdf_files) + 1):
+        # Your code here
+        # Replace '...' with the code you want to execute for each iteration
+        pdf_filename= f"output/Temp/Fichas1_page_{i}.pdf"
+        xlsx_output_filename = f"output/Xlsx/Fichas1_page_{i}.xlsx"
+        print(f"Converting {pdf_filename} to {xlsx_output_filename}")
+        pdf_to_xlsx(pdf_filename, xlsx_output_filename)
+        
+        
 
     # for filename in os.listdir("output/Temp"):
     #     if filename.endswith(".pdf"):
     #         os.remove(f"output/Temp/{filename}")
-            
+
     # for filename in os.listdir("output"):
     #     if filename.endswith(".xlsx"):
     #         os.remove(f"output/{filename}")
-    
-    
-    
 
     print("Done :) ")
     pass
-
-
 
 
 if __name__ == "__main__":
