@@ -22,17 +22,19 @@ def split_pdf(archivo: str):
 
 
 def pdf_to_xlsx(pdf_file_name, xlsx_file_name):
-    print("Converting: ", pdf_file_name)
+    # print("Converting: ", pdf_file_name)
     tables = camelot.read_pdf(pdf_file_name, pages="all", flavor="stream")
 
     for i, table in enumerate(tables):  # type: ignore
         df = table.df
         rows_to_delete = []
 
+        # Agarra los valores de las primeras 3 filas y los guarda en variables
         linea1 = df.iloc[0].values
         linea2 = df.iloc[1].values
         linea3 = df.iloc[2].values
 
+        # Revisa si las primeras 3 filas tienen los valores que se esperan, si no, los agrega a la lista de filas a eliminar
         if "Dirección de Proyectos" in linea1:
             rows_to_delete.append(0)
         if "Unidad de Costos" in linea2:
@@ -47,45 +49,68 @@ def pdf_to_xlsx(pdf_file_name, xlsx_file_name):
 
         rows_to_delete = []
 
+        # Revisa si en el espacio 0,1 existe \nActividad: y lo elimina si es asi.
         if "\nActividad:" in df.iloc[0, 1]:
             df.iloc[0, 1] = df.iloc[0, 1].replace("\nActividad:", "")
 
+        # Revisa si en el espacio 0,2 existe Actividad: y lo elimina si es asi. Luego guarda el valor de la celda en la variable
+        # NombreFichaFinal y lo reemplaza adonde tiene que estar
         if "Actividad:" in df.iloc[0, 2]:
             df.iloc[0, 2] = df.iloc[0, 2].replace("Actividad:", "")
             NombreFichaFinal = df.iloc[0, 3]
-            print("\033[94mNombre de ficha esta en la posicion 3\033[0m")
+            # print("\033[94mNombre de ficha esta en la posicion 3\033[0m")
             # This print statement should display the message "Nombre de ficha esta en la posicion 3" in the console with the color blue (94).
-            print("Nombre Ficha Final =", NombreFichaFinal)
+            # print("Nombre Ficha Final =", NombreFichaFinal)
         elif df.iloc[0, 2] == "":
             NombreFichaFinal = df.iloc[0, 3]
             # This print statement should display the message "Nombre de ficha esta en la posicion 3" in the console with the color yellow (93).
-            print("\033[93mNombre de ficha esta en la posicion 3\033[0m")
-            print("Nombre Ficha Final =", NombreFichaFinal)
+            # print("\033[93mNombre de ficha esta en la posicion 3\033[0m")
+            # print("Nombre Ficha Final =", NombreFichaFinal)
         elif df.iloc[0, 2] != "":
             NombreFichaFinal = df.iloc[0, 2]
             # This print statement should display the message "Nombre de ficha esta en la posicion 2" in the console with the color red (91).
-            print("Nombre Ficha Final =", NombreFichaFinal)
+            # print("Nombre Ficha Final =", NombreFichaFinal)
         else:
             print("\033[91mError en el archivo: \033[0m", pdf_file_name)
             print("Error: ", e)
             print(df)
             return
-
         valor_CodigoActividad = df.iloc[0, 1]
-        print("Codigo Actividad =", valor_CodigoActividad)
+        # print("Codigo Actividad =", valor_CodigoActividad)
 
+        # limpiar la primera fila
         for col in df.columns:
             df.iloc[0, col] = ""
 
+        # Reemplazar los valores de la primera fila con los valores que se guardaron en las variables
         df.iloc[0, 0] = valor_CodigoActividad
         df.iloc[0, 1] = NombreFichaFinal
 
-        # print(df.head(4))
+        # Esto revisa si hay algun valor del nombre de la ficha que fue truncated hacia otra celda just abajo de la primera fila
+        # De ser asi lo agrega al nombre de la ficha y elimina la fila que tenia el valor truncado
+        dato: str = ""
+        if (df.iloc[1, 0] == "") & (df.iloc[1, 1] == ""):
+            if df.iloc[1, 2] == "":
+                dato = df.iloc[1, 3]
+            else:
+                dato = df.iloc[1, 2]
+            df.iloc[0, 1] = df.iloc[0, 1] + " " + dato
+            df.drop(1, inplace=True)
+            df.reset_index(drop=True, inplace=True)
 
-        ##Revisa si la fila esta vacia y solo tiene un valor en el nombre del insumo, si es asi, lo agrega al nombree dle insumo anterior y elimina la fila que no tenia nada mas que eso
-
+        
         try:
+            tipodeinsumo = df.iloc[2, 1]
+            
+
+            vocabulario_excepciones = [valor_CodigoActividad,"Unidad:","Tipo De Insumo:", "Codigo_Insumo", ""]
+            # Revisa si la fila esta vacia y solo tiene un valor en el nombre del insumo, si es asi, lo agrega al nombree dle insumo anterior y elimina la fila que no tenia nada mas que eso
+            
+            last_column_number = len(df.columns)
+            df[str(last_column_number)] = ''
             for index in range(len(df)):
+                if df.iloc[index, 0] == "Tipo De Insumo:":
+                    tipodeinsumo = df.iloc[index, 1]
                 if (
                     (df.iloc[index, 0] == "")
                     & (df.iloc[index, 2] == "")
@@ -93,20 +118,27 @@ def pdf_to_xlsx(pdf_file_name, xlsx_file_name):
                     & (df.iloc[index, 4] == "")
                     & (df.iloc[index, 5] == "")
                 ):
-                    print("Condicion vacia cumplida")
+                    # print("Condicion vacia cumplida")
                     text = df.iloc[index, 1]
                     df.iloc[index - 1, 1] = df.iloc[index - 1, 1] + " " + text
                     rows_to_delete.append(index)
+                
+                if (df.iloc[index,0] not in vocabulario_excepciones):
+                    df.iloc[index, last_column_number] = tipodeinsumo
+                    
         except Exception as e:
             print("Error en el archivo: ", pdf_file_name)
             print("Error: ", e)
 
             print(df)
+            
             return
 
         df = df.drop(rows_to_delete)
 
-        print("\n\n")
+        # print("Tabla despues de procesar")
+        # print(df)
+        # print("\n\n")
 
         df.to_excel(xlsx_file_name, index=False)
 
@@ -119,16 +151,16 @@ def main():
     files = os.listdir("output/Temp")
     pdf_files = [file for file in files if file.endswith(".pdf")]
 
-    print(f"Total number of PDF files: {len(pdf_files)}")
+    # print(f"Total number of PDF files: {len(pdf_files)}")
 
     for i in range(1, len(pdf_files) + 1):
         # for i in range(1, 200):
 
         pdf_filename = f"output/Temp/Fichas1_page_{i}.pdf"
         xlsx_output_filename = f"output/Xlsx/Fichas1_page_{i}.xlsx"
-        print("\n\n")
+        # print("\n\n")
 
-        print(f"Converting {pdf_filename} to {xlsx_output_filename}")
+        # print(f"Converting {pdf_filename} to {xlsx_output_filename}")
 
         pdf_to_xlsx(pdf_filename, xlsx_output_filename)
 
