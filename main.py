@@ -6,17 +6,19 @@ import os
 
 
 def split_pdf(archivo: str):
-    pdf_file = open(archivo, "rb")
-    pdf_reader = PyPDF2.PdfFileReader(pdf_file)
+    with open(archivo, "rb") as pdf_file:
+        pdf_reader = PyPDF2.PdfFileReader(pdf_file)
 
-    for page in range(len(pdf_reader.pages)):
-        pdf_writer = PyPDF2.PdfFileWriter()
-        pdf_writer.addPage(pdf_reader.pages[page])
+        for page in range(len(pdf_reader.pages)):
+            pdf_writer = PyPDF2.PdfFileWriter()
+            pdf_writer.addPage(pdf_reader.pages[page])
 
-        output_filename = f"output/Temp/{archivo.split('.pdf')[0]}_page_{page + 1}.pdf"
+            output_filename = (
+                f"output/Temp/{archivo.split('.pdf')[0]}_page_{page + 1}.pdf"
+            )
 
-        with open(output_filename, "wb") as output_pdf:
-            pdf_writer.write(output_pdf)
+            with open(output_filename, "wb") as output_pdf:
+                pdf_writer.write(output_pdf)
 
 
 def pdf_to_xlsx(pdf_file_name, xlsx_file_name):
