@@ -120,7 +120,7 @@ def main():
     print(f"Total number of PDF files: {len(pdf_files)}")
 
     for i in range(1, len(pdf_files) + 1):
-    # for i in range(1, 200):
+        # for i in range(1, 200):
 
         pdf_filename = f"output/Temp/Fichas1_page_{i}.pdf"
         xlsx_output_filename = f"output/Xlsx/Fichas1_page_{i}.xlsx"
