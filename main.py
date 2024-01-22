@@ -1,3 +1,4 @@
+import shutil
 import PyPDF2
 import pdfplumber
 import pandas as pd
@@ -83,7 +84,7 @@ def pdf_to_xlsx(pdf_file_name, xlsx_file_name):
             df.iloc[0, col] = ""
 
         # Reemplazar los valores de la primera fila con los valores que se guardaron en las variables
-        df.iloc[0, 0] = valor_CodigoActividad
+        df.iloc[0, 0] = valor_CodigoActividad +"+"
         df.iloc[0, 1] = NombreFichaFinal
 
         # Esto revisa si hay algun valor del nombre de la ficha que fue truncated hacia otra celda just abajo de la primera fila
@@ -143,34 +144,45 @@ def pdf_to_xlsx(pdf_file_name, xlsx_file_name):
         df.to_excel(xlsx_file_name, index=False)
 
 
+
+def merge(path: str, output: str):
+    print("Merging files")
+    files = os.listdir(path)
+    
+    
+
 def main():
-    path = "Fichas1.pdf"
+    # path = "Fichas1.pdf"
 
-    split_pdf(path)
+    # split_pdf(path)
 
-    files = os.listdir("output/Temp")
-    pdf_files = [file for file in files if file.endswith(".pdf")]
+    # files = os.listdir("output/Temp")
+    # pdf_files = [file for file in files if file.endswith(".pdf")]
 
-    # print(f"Total number of PDF files: {len(pdf_files)}")
+    # # print(f"Total number of PDF files: {len(pdf_files)}")
 
-    for i in range(1, len(pdf_files) + 1):
-        # for i in range(1, 200):
+    # for i in range(1, len(pdf_files) + 1):
+    #     # for i in range(1, 200):
 
-        pdf_filename = f"output/Temp/Fichas1_page_{i}.pdf"
-        xlsx_output_filename = f"output/Xlsx/Fichas1_page_{i}.xlsx"
-        # print("\n\n")
+    #     pdf_filename = f"output/Temp/Fichas1_page_{i}.pdf"
+    #     xlsx_output_filename = f"output/Xlsx/Fichas1_page_{i}.xlsx"
+    #     # print("\n\n")
 
-        # print(f"Converting {pdf_filename} to {xlsx_output_filename}")
+    #     # print(f"Converting {pdf_filename} to {xlsx_output_filename}")
 
-        pdf_to_xlsx(pdf_filename, xlsx_output_filename)
+    #     pdf_to_xlsx(pdf_filename, xlsx_output_filename)
 
-    for filename in os.listdir("output/Temp"):
-        if filename.endswith(".pdf"):
-            os.remove(f"output/Temp/{filename}")
+    # for filename in os.listdir("output/Temp"):
+    #     if filename.endswith(".pdf"):
+    #         os.remove(f"output/Temp/{filename}")
 
     # for filename in os.listdir("output/Xlsx"):
     #     if filename.endswith(".xlsx"):
     #         os.remove(f"output/Xlsx/{filename}")
+    
+    
+    merge("output/Xlsx", "output/End/Fichas1.xlsx")
+    
 
     print("Done :) ")
     pass
