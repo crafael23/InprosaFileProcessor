@@ -8,11 +8,11 @@ import os
 
 def split_pdf(archivo: str):
     with open(archivo, "rb") as pdf_file:
-        pdf_reader = PyPDF2.PdfFileReader(pdf_file)
+        pdf_reader = PyPDF2.PdfReader(pdf_file)
 
         for page in range(len(pdf_reader.pages)):
-            pdf_writer = PyPDF2.PdfFileWriter()
-            pdf_writer.addPage(pdf_reader.pages[page])
+            pdf_writer = PyPDF2.PdfWriter()
+            pdf_writer.add_page(pdf_reader.pages[page])
 
             output_filename = (
                 f"output/Temp/{archivo.split('.pdf')[0]}_page_{page + 1}.pdf"
@@ -84,7 +84,7 @@ def pdf_to_xlsx(pdf_file_name, xlsx_file_name):
             df.iloc[0, col] = ""
 
         # Reemplazar los valores de la primera fila con los valores que se guardaron en las variables
-        df.iloc[0, 0] = valor_CodigoActividad +"+"
+        df.iloc[0, 0] = valor_CodigoActividad
         df.iloc[0, 1] = NombreFichaFinal
 
         # Esto revisa si hay algun valor del nombre de la ficha que fue truncated hacia otra celda just abajo de la primera fila
@@ -98,17 +98,19 @@ def pdf_to_xlsx(pdf_file_name, xlsx_file_name):
             df.iloc[0, 1] = df.iloc[0, 1] + " " + dato
             df.drop(1, inplace=True)
             df.reset_index(drop=True, inplace=True)
-
+        
+        
         
         try:
             tipodeinsumo = df.iloc[2, 1]
-            
-
             vocabulario_excepciones = [valor_CodigoActividad,"Unidad:","Tipo De Insumo:", "Codigo_Insumo", ""]
             # Revisa si la fila esta vacia y solo tiene un valor en el nombre del insumo, si es asi, lo agrega al nombree dle insumo anterior y elimina la fila que no tenia nada mas que eso
             
             last_column_number = len(df.columns)
+            
+            
             df[str(last_column_number)] = ''
+            df.iloc[0, last_column_number] = "+"
             for index in range(len(df)):
                 if df.iloc[index, 0] == "Tipo De Insumo:":
                     tipodeinsumo = df.iloc[index, 1]
@@ -148,40 +150,60 @@ def pdf_to_xlsx(pdf_file_name, xlsx_file_name):
 def merge(path: str, output: str):
     print("Merging files")
     files = os.listdir(path)
+    xlsx_files = [file for file in files if file.endswith(".xlsx")]
+    xlsx_files.sort()  # Sort the list alphabetically
+
+    # List to hold all the individual DataFrames
+    df_list = []
+
+    # Read each Excel file into a DataFrame and add it to the list
+    for file in xlsx_files:
+        df = pd.read_excel(os.path.join(path, file))
+        df_list.append(df)
+        
+        empty_df = pd.DataFrame([[""] * len(df.columns)] * 2, columns=df.columns)
+        df_list.append(empty_df)
+    # Concatenate all the DataFrames together
+    merged_df = pd.concat(df_list, ignore_index=True)
+
+    # Write the merged DataFrame to a new Excel file
+    merged_df.to_excel(output, index=False)
     
     
 
 def main():
-    # path = "Fichas1.pdf"
+    path = "Fichas_final"
 
     # split_pdf(path)
 
-    # files = os.listdir("output/Temp")
-    # pdf_files = [file for file in files if file.endswith(".pdf")]
+    files = os.listdir("output/Temp")
+    pdf_files = [file for file in files if file.endswith(".pdf")]
 
-    # # print(f"Total number of PDF files: {len(pdf_files)}")
+    # print(f"Total number of PDF files: {len(pdf_files)}")
 
-    # for i in range(1, len(pdf_files) + 1):
-    #     # for i in range(1, 200):
+    for i in range(1, len(pdf_files) + 1):
+        # for i in range(1, 200):
 
-    #     pdf_filename = f"output/Temp/Fichas1_page_{i}.pdf"
-    #     xlsx_output_filename = f"output/Xlsx/Fichas1_page_{i}.xlsx"
-    #     # print("\n\n")
+        pdf_filename = f"output/Temp/{path}_page_{i}.pdf"
+        xlsx_output_filename = f"output/Xlsx/Fichas1_page_{i}.xlsx"
+        # print("\n\n")
 
-    #     # print(f"Converting {pdf_filename} to {xlsx_output_filename}")
+        # print(f"Converting {pdf_filename} to {xlsx_output_filename}")
 
-    #     pdf_to_xlsx(pdf_filename, xlsx_output_filename)
+        pdf_to_xlsx(pdf_filename, xlsx_output_filename)
+        
+        
 
-    # for filename in os.listdir("output/Temp"):
-    #     if filename.endswith(".pdf"):
-    #         os.remove(f"output/Temp/{filename}")
+    for filename in os.listdir("output/Temp"):
+        if filename.endswith(".pdf"):
+            os.remove(f"output/Temp/{filename}")
 
-    # for filename in os.listdir("output/Xlsx"):
-    #     if filename.endswith(".xlsx"):
-    #         os.remove(f"output/Xlsx/{filename}")
     
+    merge("output/Xlsx", "output/End/Fichas1_prueba_2.xlsx")
     
-    merge("output/Xlsx", "output/End/Fichas1.xlsx")
+    for filename in os.listdir("output/Xlsx"):
+        if filename.endswith(".xlsx"):
+            os.remove(f"output/Xlsx/{filename}")
     
 
     print("Done :) ")
