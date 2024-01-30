@@ -29,6 +29,7 @@ def pdf_to_dataFrame(pdf_file_name):
 
     for i, table in enumerate(tables):  # type: ignore
         df = table.df
+        df = df.iloc[:,:5]
         rows_to_delete = []
 
         # Agarra los valores de las primeras 3 filas y los guarda en variables
@@ -100,15 +101,18 @@ def pdf_to_dataFrame(pdf_file_name):
             df.drop(1, inplace=True)
             df.reset_index(drop=True, inplace=True)
         
+        df.iloc[0,2]= df.iloc[1,1]
         
+        df.iloc[0,3]= 0
+        df.iloc[0,4]= 0
         
         try:
             tipodeinsumo = df.iloc[2, 1]
             vocabulario_excepciones = [valor_CodigoActividad,"Unidad:","Tipo De Insumo:", "Codigo_Insumo", ""]
             # Revisa si la fila esta vacia y solo tiene un valor en el nombre del insumo, si es asi, lo agrega al nombree dle insumo anterior y elimina la fila que no tenia nada mas que eso
-            
             last_column_number = len(df.columns)
             
+            vocabulario_borrar = ["Tipo De Insumo:","Codigo_Insumo", "LICITACIONES\nUsuario:"]
             
             df[str(last_column_number)] = ''
             df.iloc[0, last_column_number] = "+"
@@ -120,7 +124,6 @@ def pdf_to_dataFrame(pdf_file_name):
                     & (df.iloc[index, 2] == "")
                     & (df.iloc[index, 3] == "")
                     & (df.iloc[index, 4] == "")
-                    & (df.iloc[index, 5] == "")
                 ):
                     # print("Condicion vacia cumplida")
                     text = df.iloc[index, 1]
@@ -129,20 +132,24 @@ def pdf_to_dataFrame(pdf_file_name):
                 
                 if (df.iloc[index,0] not in vocabulario_excepciones):
                     df.iloc[index, last_column_number] = tipodeinsumo
+                
+                if (df.iloc[index,0] in vocabulario_borrar):
+                    rows_to_delete.append(index)
                     
         except Exception as e:
             print("Error en el archivo: ", pdf_file_name)
             print("Error: ", e)
-
             print(df)
-            
             return
-
+        
+        rows_to_delete.append(1)
         df = df.drop(rows_to_delete)
+        df.reset_index(drop=True, inplace=True)
 
-        # print("Tabla despues de procesar")
-        # print(df)
-        # print("\n\n")
+        print("Tabla despues de procesar")
+        print(df)
+        
+        print("\n\n")
 
         return df
 
@@ -169,45 +176,53 @@ def merge(path: str, output: str):
     # Write the merged DataFrame to a new Excel file
     merged_df.to_excel(output, index=False)
     
+
+    
+    
     
 
 def main():
-    path = "Fichas_final.pdf"
-    path2 = "Fichas1.pdf"
+    # path = "Fichas_final.pdf"
+    # path2 = "Fichas1.pdf"
     
     # split_pdf(path)
     # split_pdf(path2)
     
-    path = path.split(".")[0]
-    path2 = path2.split(".")[0]
-    
-    print(path)
-    print(path2)
+    # path = path.split(".")[0]
+    # path2 = path2.split(".")[0]
+  
 
-    files = os.listdir("output/Temp")
-    pdf_files = [file for file in files if file.endswith(".pdf")]
+    # files = os.listdir("output/Temp")
+    # pdf_files = [file for file in files if file.endswith(".pdf")]
     
     
 
-    df_list = []
+    # df_list = []
 
-    for file in pdf_files[:20]:
-        ## return dfs
-        df_list.append(pdf_to_dataFrame(f"output/Temp/{file}"))
-        
+    # for file in pdf_files[:20]:
+    #     dataframe = pdf_to_dataFrame(f"output/Temp/{file}")
+    #     if dataframe is not None:
+    #         df_list.append(dataframe)
+    #         empty_df = pd.DataFrame([[""] * 5] * 2, columns=[f'Column{i+1}' for i in range(5)])
+    #         df_list.append(empty_df)
+            
    
+
+    # merged_df = pd.concat(df_list, ignore_index=True)
+    
+    # merged_df.to_excel("output/End/FinalFinal.xlsx", index=False)
+    
+
         
 
-    # for filename in os.listdir("output/Temp"):
-    #     if filename.endswith(".pdf"):
-    #         os.remove(f"output/Temp/{filename}")
+    for filename in os.listdir("output/Temp"):
+        if filename.endswith(".pdf"):
+            os.remove(f"output/Temp/{filename}")
 
     
-    # merge("output/Xlsx", "output/End/Fichas1_prueba_2.xlsx")
-    
-    # for filename in os.listdir("output/Xlsx"):
-    #     if filename.endswith(".xlsx"):
-    #         os.remove(f"output/Xlsx/{filename}")
+    for filename in os.listdir("output/Xlsx"):
+        if filename.endswith(".xlsx"):
+            os.remove(f"output/Xlsx/{filename}")
     
 
     print("Done :) ")
