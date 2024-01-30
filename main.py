@@ -1,11 +1,8 @@
-import shutil
-import time
 import PyPDF2
-import pdfplumber
 import pandas as pd
 import camelot
 import os
-
+import concurrent.futures
 
 def split_pdf(archivo: str):
     with open(archivo, "rb") as pdf_file:
@@ -31,83 +28,83 @@ def pdf_to_dataFrame(pdf_file_name):
         df = table.df
         df = df.iloc[:,:5]
         rows_to_delete = []
-
-        # Agarra los valores de las primeras 3 filas y los guarda en variables
-        linea1 = df.iloc[0].values
-        linea2 = df.iloc[1].values
-        linea3 = df.iloc[2].values
-
-        # Revisa si las primeras 3 filas tienen los valores que se esperan, si no, los agrega a la lista de filas a eliminar
-        if "Dirección de Proyectos" in linea1:
-            rows_to_delete.append(0)
-        if "Unidad de Costos" in linea2:
-            rows_to_delete.append(1)
-        if "Reporte De Fichas" in linea3:
-            rows_to_delete.append(2)
-        if "Reporte De Fichas" in linea1:
-            rows_to_delete.append(0)
-
-        df = df.drop(rows_to_delete)
-        df = df.reset_index(drop=True)
-
-        rows_to_delete = []
-
-        # Revisa si en el espacio 0,1 existe \nActividad: y lo elimina si es asi.
-        if "\nActividad:" in df.iloc[0, 1]:
-            df.iloc[0, 1] = df.iloc[0, 1].replace("\nActividad:", "")
-
-        # Revisa si en el espacio 0,2 existe Actividad: y lo elimina si es asi. Luego guarda el valor de la celda en la variable
-        # NombreFichaFinal y lo reemplaza adonde tiene que estar
-        if "Actividad:" in df.iloc[0, 2]:
-            df.iloc[0, 2] = df.iloc[0, 2].replace("Actividad:", "")
-            NombreFichaFinal = df.iloc[0, 3]
-            # print("\033[94mNombre de ficha esta en la posicion 3\033[0m")
-            # This print statement should display the message "Nombre de ficha esta en la posicion 3" in the console with the color blue (94).
-            # print("Nombre Ficha Final =", NombreFichaFinal)
-        elif df.iloc[0, 2] == "":
-            NombreFichaFinal = df.iloc[0, 3]
-            # This print statement should display the message "Nombre de ficha esta en la posicion 3" in the console with the color yellow (93).
-            # print("\033[93mNombre de ficha esta en la posicion 3\033[0m")
-            # print("Nombre Ficha Final =", NombreFichaFinal)
-        elif df.iloc[0, 2] != "":
-            NombreFichaFinal = df.iloc[0, 2]
-            # This print statement should display the message "Nombre de ficha esta en la posicion 2" in the console with the color red (91).
-            # print("Nombre Ficha Final =", NombreFichaFinal)
-        else:
-            print("\033[91mError en el archivo: \033[0m", pdf_file_name)
-            print("Error: ", e)
-            print(df)
-            return
-        valor_CodigoActividad = df.iloc[0, 1]
-        # print("Codigo Actividad =", valor_CodigoActividad)
-
-        # limpiar la primera fila
-        for col in df.columns:
-            df.iloc[0, col] = ""
-
-        # Reemplazar los valores de la primera fila con los valores que se guardaron en las variables
-        df.iloc[0, 0] = valor_CodigoActividad
-        df.iloc[0, 1] = NombreFichaFinal
-
-        # Esto revisa si hay algun valor del nombre de la ficha que fue truncated hacia otra celda just abajo de la primera fila
-        # De ser asi lo agrega al nombre de la ficha y elimina la fila que tenia el valor truncado
-        dato: str = ""
-        if (df.iloc[1, 0] == "") & (df.iloc[1, 1] == ""):
-            if df.iloc[1, 2] == "":
-                dato = df.iloc[1, 3]
-            else:
-                dato = df.iloc[1, 2]
-            df.iloc[0, 1] = df.iloc[0, 1] + " " + dato
-            df.drop(1, inplace=True)
-            df.reset_index(drop=True, inplace=True)
-        
-        df.iloc[0,2]= df.iloc[1,1]
-        
-        df.iloc[0,3]= 0
-        df.iloc[0,4]= 0
-        
         try:
+
+            # Agarra los valores de las primeras 3 filas y los guarda en variables
+            linea1 = df.iloc[0].values
+            linea2 = df.iloc[1].values
+            linea3 = df.iloc[2].values
+
+            # Revisa si las primeras 3 filas tienen los valores que se esperan, si no, los agrega a la lista de filas a eliminar
+            if "Dirección de Proyectos" in linea1:
+                rows_to_delete.append(0)
+            if "Unidad de Costos" in linea2:
+                rows_to_delete.append(1)
+            if "Reporte De Fichas" in linea3:
+                rows_to_delete.append(2)
+            if "Reporte De Fichas" in linea1:
+                rows_to_delete.append(0)
+
+            df = df.drop(rows_to_delete)
+            df = df.reset_index(drop=True)
+
+            rows_to_delete = []
+
+            # Revisa si en el espacio 0,1 existe \nActividad: y lo elimina si es asi.
+            if "\nActividad:" in df.iloc[0, 1]:
+                df.iloc[0, 1] = df.iloc[0, 1].replace("\nActividad:", "")
+
+            # Revisa si en el espacio 0,2 existe Actividad: y lo elimina si es asi. Luego guarda el valor de la celda en la variable
+            # NombreFichaFinal y lo reemplaza adonde tiene que estar
+            if "Actividad:" in df.iloc[0, 2]:
+                df.iloc[0, 2] = df.iloc[0, 2].replace("Actividad:", "")
+                NombreFichaFinal = df.iloc[0, 3]
+                # print("\033[94mNombre de ficha esta en la posicion 3\033[0m")
+                # This print statement should display the message "Nombre de ficha esta en la posicion 3" in the console with the color blue (94).
+                # print("Nombre Ficha Final =", NombreFichaFinal)
+            elif df.iloc[0, 2] == "":
+                NombreFichaFinal = df.iloc[0, 3]
+                # This print statement should display the message "Nombre de ficha esta en la posicion 3" in the console with the color yellow (93).
+                # print("\033[93mNombre de ficha esta en la posicion 3\033[0m")
+                # print("Nombre Ficha Final =", NombreFichaFinal)
+            elif df.iloc[0, 2] != "":
+                NombreFichaFinal = df.iloc[0, 2]
+                # This print statement should display the message "Nombre de ficha esta en la posicion 2" in the console with the color red (91).
+                # print("Nombre Ficha Final =", NombreFichaFinal)
+            else:
+                print("\033[91mError en el archivo: \033[0m", pdf_file_name)
+                print("Error: ", e)
+                print(df)
+                return
+            valor_CodigoActividad = df.iloc[0, 1]
+            # print("Codigo Actividad =", valor_CodigoActividad)
+
+            # limpiar la primera fila
+            for col in df.columns:
+                df.iloc[0, col] = ""
+
+            # Reemplazar los valores de la primera fila con los valores que se guardaron en las variables
+            df.iloc[0, 0] = valor_CodigoActividad
+            df.iloc[0, 1] = NombreFichaFinal
+
+            # Esto revisa si hay algun valor del nombre de la ficha que fue truncated hacia otra celda just abajo de la primera fila
+            # De ser asi lo agrega al nombre de la ficha y elimina la fila que tenia el valor truncado
+            dato: str = ""
+            if (df.iloc[1, 0] == "") & (df.iloc[1, 1] == ""):
+                if df.iloc[1, 2] == "":
+                    dato = df.iloc[1, 3]
+                else:
+                    dato = df.iloc[1, 2]
+                df.iloc[0, 1] = df.iloc[0, 1] + " " + dato
+                df.drop(1, inplace=True)
+                df.reset_index(drop=True, inplace=True)
+            
+            df.iloc[0, 2] = df.iloc[1, 1]
+            df.iloc[0, 3] = 0
+            df.iloc[0, 4] = 0
+        
             tipodeinsumo = df.iloc[2, 1]
+            
             vocabulario_excepciones = [valor_CodigoActividad,"Unidad:","Tipo De Insumo:", "Codigo_Insumo", ""]
             # Revisa si la fila esta vacia y solo tiene un valor en el nombre del insumo, si es asi, lo agrega al nombree dle insumo anterior y elimina la fila que no tenia nada mas que eso
             last_column_number = len(df.columns)
@@ -146,10 +143,10 @@ def pdf_to_dataFrame(pdf_file_name):
         df = df.drop(rows_to_delete)
         df.reset_index(drop=True, inplace=True)
 
-        print("Tabla despues de procesar")
-        print(df)
+        # print("Tabla despues de procesar")
+        # print(df)
         
-        print("\n\n")
+        # print("\n\n")
 
         return df
 
@@ -177,7 +174,12 @@ def merge(path: str, output: str):
     merged_df.to_excel(output, index=False)
     
 
-    
+def process_file(file):
+    dataframe = pdf_to_dataFrame(f"output/Temp/{file}")
+    if dataframe is not None:
+        empty_df = pd.DataFrame([[""] * 5] * 2, columns=[f'Column{i+1}' for i in range(5)])
+        return dataframe, empty_df
+    return None, None
     
     
 
@@ -192,37 +194,41 @@ def main():
     # path2 = path2.split(".")[0]
   
 
-    # files = os.listdir("output/Temp")
-    # pdf_files = [file for file in files if file.endswith(".pdf")]
+    files = os.listdir("output/Temp")
+    pdf_files = [file for file in files if file.endswith(".pdf")]
     
     
 
-    # df_list = []
+    df_list = []
 
-    # for file in pdf_files[:20]:
-    #     dataframe = pdf_to_dataFrame(f"output/Temp/{file}")
-    #     if dataframe is not None:
-    #         df_list.append(dataframe)
-    #         empty_df = pd.DataFrame([[""] * 5] * 2, columns=[f'Column{i+1}' for i in range(5)])
-    #         df_list.append(empty_df)
+    print("Converting pdf to dataframe")
+    for file in pdf_files:
+        dataframe = pdf_to_dataFrame(f"output/Temp/{file}")
+        if dataframe is not None:
+            df_list.append(dataframe)
+            empty_df = pd.DataFrame([[""] * 5] * 2, columns=[f'Column{i+1}' for i in range(5)])
+            df_list.append(empty_df)
             
    
 
-    # merged_df = pd.concat(df_list, ignore_index=True)
-    
-    # merged_df.to_excel("output/End/FinalFinal.xlsx", index=False)
+        print("Merging files")
+        merged_df = pd.concat(df_list, ignore_index=True)
+        
+        print("Writing to excel")
+        merged_df.to_excel("output/End/FinalFinal.xlsx", index=False,header=False)
     
 
         
 
+    print("Deleting temp files")
     for filename in os.listdir("output/Temp"):
         if filename.endswith(".pdf"):
             os.remove(f"output/Temp/{filename}")
 
     
-    for filename in os.listdir("output/Xlsx"):
-        if filename.endswith(".xlsx"):
-            os.remove(f"output/Xlsx/{filename}")
+    # for filename in os.listdir("output/Xlsx"):
+    #     if filename.endswith(".xlsx"):
+    #         os.remove(f"output/Xlsx/{filename}")
     
 
     print("Done :) ")
